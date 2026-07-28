@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#063c5c" />
+    <title>부산 씨월드 트레일</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div class="topline"><button class="brand-home" id="homeButton" aria-label="부산 씨월드 트레일 홈으로 이동"><span class="brand-mark">〰</span><span>BUSAN SEA-WALL TRAIL</span></button></div>
+        <p class="eyebrow">바다를 따라, 더 가볍게</p>
+        <h1>오늘의 부산은<br /><em>어디로 걸을까요?</em></h1>
+        <p class="hero-copy">붐비는 해변 대신, 새로운 해안길을 발견하고<br />한 걸음으로 바다를 깨끗하게 만들어요.</p>
+        <button class="primary-button" id="startButton">내게 맞는 루트 찾기 <span>↓</span></button>
+      </header>
+
+      <section class="section crowd-section" id="routes">
+        <div class="section-heading"><div><p class="eyebrow">TODAY'S COAST</p><h2>오늘의 해안 혼잡도</h2></div><span class="demo-label">예시 데이터</span></div>
+        <p class="section-note">혼잡한 곳 대신 여유 있는 해안으로 떠나 보세요.</p>
+        <div class="crowd-grid">
+          <article class="crowd-card busy"><span class="area-icon">☀</span><div><strong>해운대</strong><p>혼잡해요</p></div><span class="status-dot"></span></article>
+          <article class="crowd-card busy"><span class="area-icon">⌇</span><div><strong>광안리</strong><p>혼잡해요</p></div><span class="status-dot"></span></article>
+          <article class="crowd-card calm"><span class="area-icon">⌁</span><div><strong>영도</strong><p>여유로워요</p></div><span class="status-dot"></span></article>
+          <article class="crowd-card calm"><span class="area-icon">⚓</span><div><strong>북항</strong><p>여유로워요</p></div><span class="status-dot"></span></article>
+        </div>
+      </section>
+
+      <section class="section route-section">
+        <div class="section-heading"><div><p class="eyebrow">SEA-WALL ROUTES</p><h2>오늘의 추천 루트</h2></div><span class="demo-label">프로토타입</span></div>
+        <div class="route-list" id="routeList"></div>
+        <button class="route-maker-button" id="routeMakerButton">＋ 루트 작성하기</button>
+      </section>
+
+      <section class="mission-banner">
+        <div class="mission-art">🌊<span>✦</span></div>
+        <div><p class="eyebrow">COASTAL CAMPAIGN</p><h2>우리가 지나온 바다를<br />깨끗하게 지켜요</h2><p>해안길에서는 쓰레기를 되가져가고,<br />보이는 쓰레기는 함께 주워요.</p></div>
+      </section>
+
+      <section class="section story-section">
+        <div class="section-heading"><div><p class="eyebrow">HIDDEN STORY</p><h2>바다의 이야기를 찾아요</h2></div></div>
+        <button class="story-card" id="storyButton"><span class="story-icon">◉</span><span><b>북항의 새로운 물결</b><small>재생된 항만에서 만나는 부산의 과거와 미래</small></span><span>→</span></button>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="주요 메뉴"><button class="nav-item active" id="navHome">⌂<span>홈</span></button><button class="nav-item route-nav" id="navRoute">⌁<span>루트</span></button></nav>
+
+    <div class="modal-backdrop navigation-backdrop" id="modalBackdrop" hidden>
+      <section class="modal navigation-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <button class="close-button" id="closeModal" aria-label="닫기">×</button>
+        <p class="eyebrow">ROUTE NAVIGATION · DEMO</p>
+        <h2 id="modalTitle">센텀–마린시티–광안리</h2>
+        <p class="modal-copy">탐방 지점을 따라 걸으며 바다와 동네를 함께 발견해요.</p>
+        <div class="map-demo" aria-label="예시 지도"><span class="sea-label">SUYEONG BAY</span><span class="route-line"></span><button class="map-stop current" data-stop="센텀시티"><b>1</b><small>센텀시티</small></button><button class="map-stop" data-stop="마린시티"><b>2</b><small>마린시티</small></button><button class="map-stop food" data-stop="파도식탁"><b>3</b><small>파도식탁</small></button><button class="map-stop" data-stop="광안리 해변"><b>4</b><small>광안리</small></button></div>
+        <section class="navigation-card"><span class="direction-icon">↑</span><div><small id="navStep">다음 탐방 지점</small><b id="navPlace">마린시티 바다전망</b><p id="navDescription">해안 산책로를 따라 약 8분 이동하세요. <span class="demo-label inline">예시 안내</span></p></div></section>
+        <button class="primary-button full" id="completeRoute">다음 지점으로 안내받기</button>
+      </section>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
