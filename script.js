@@ -16,6 +16,7 @@ const routeSets = {
     { name: "영도 골목과 바다 프레임", detail: "골목 끝에서 만나는 바다 사진 명소", meta: "영도 → 골목전망 → 흰여울", icon: "🖼" }
   ]
 };
+
 const tasteNames = { food: "맛집 탐방형", view: "바다 뷰형", quiet: "조용한 산책형", photo: "사진 명소형" };
 const tasteDescriptions = { food: "바다를 따라 걷고, 동네의 새로운 맛을 발견하는 여행을 좋아해요.", view: "탁 트인 바다와 도시의 빛이 만드는 풍경을 가장 좋아해요.", quiet: "사람이 비교적 적은 길에서 천천히 바다를 만나는 여행을 좋아해요.", photo: "특별한 풍경을 사진으로 남기며 여행의 순간을 기록하는 것을 좋아해요." };
 const questions = [
@@ -30,8 +31,7 @@ const questions = [
   ["오늘 남기고 싶은 것은?", ["나만 아는 동네 발견", "근사한 여행 사진"]],
   ["마지막 질문! 오늘의 기분은?", ["느긋하고 편안하게", "새롭고 특별하게"]]
 ];
-const routeList = document.getElementById("routeList"), modal = document.getElementById("modalBackdrop"), quiz = document.getElementById("quizBackdrop");
-let activeTaste = "food", currentStep = 0, quizIndex = 0, aiRouteIndex = 0, activeRoute = null, scores = { food: 0, view: 0, quiet: 0, photo: 0 };
+
 const routeStops = {
   "센텀–마린시티–광안리": ["센텀시티", "마린시티 바다전망", "파도식탁 · 가상 로컬 식당", "광안리 해변"],
   "송도 바다식탁 산책": ["송도해수욕장", "송도 구름산책로", "바다정류장 · 가상 로컬 식당", "암남공원"],
@@ -40,24 +40,101 @@ const routeStops = {
   "그린레일웨이 + 동백섬 루프": ["그린레일웨이", "동백섬 숲길", "바다쉼표 · 가상 카페", "해운대 해변"],
   "북항 물결 산책로": ["북항 친수공원", "항만 산책길", "물결식당 · 가상 로컬 식당", "바다쉼터"],
   "광안대교 빛 포인트 루트": ["민락수변공원", "광안대교 뷰포인트", "빛사진관 · 가상 카페", "광안리 해변"],
-  "영도 골목과 바다 프레임": ["영도 골목입구", "골목전망 포인트", "프레임카페 · 가상 카페", "흰여울 바다" ]
+  "영도 골목과 바다 프레임": ["영도 골목입구", "골목전망 포인트", "프레임카페 · 가상 카페", "흰여울 바다"]
 };
-const mapDestinations = {
-  "센텀–마린시티–광안리": ["마린시티 부산", "광안리해수욕장 부산", "광안리해수욕장 부산"],
-  "송도 바다식탁 산책": ["송도해수욕장 부산", "송도해수욕장 부산", "암남공원 부산"],
-  "마린시티 노을 뷰 루트": ["마린시티 부산", "수영만 요트경기장 부산", "광안대교 부산"],
-  "영도 절벽 바다길": ["흰여울문화마을 부산", "흰여울문화마을 부산", "영도 부산"],
-  "그린레일웨이 + 동백섬 루프": ["동백섬 부산", "동백섬 부산", "해운대해수욕장 부산"],
-  "북항 물결 산책로": ["부산항 북항친수공원", "부산항 북항친수공원", "부산항 북항친수공원"],
-  "광안대교 빛 포인트 루트": ["광안대교 부산", "광안리해수욕장 부산", "광안리해수욕장 부산"],
-  "영도 골목과 바다 프레임": ["흰여울문화마을 부산", "흰여울문화마을 부산", "흰여울문화마을 부산"]
-};
+const routeMapCenters = { "센텀–마린시티–광안리": [35.163, 129.137], "송도 바다식탁 산책": [35.076, 129.019], "마린시티 노을 뷰 루트": [35.157, 129.151], "영도 절벽 바다길": [35.078, 129.044], "그린레일웨이 + 동백섬 루프": [35.160, 129.162], "북항 물결 산책로": [35.116, 129.045], "광안대교 빛 포인트 루트": [35.153, 129.119], "영도 골목과 바다 프레임": [35.078, 129.044] };
 
-function dailyRoutes(taste) { const day = Math.floor(Date.now() / 86400000); const all = routeSets[taste]; return [all[day % all.length], all[(day + 1) % all.length]]; }
-function renderRoutes() { const baseRoutes = dailyRoutes(activeTaste); const todayRoutes = [baseRoutes[aiRouteIndex % baseRoutes.length], ...baseRoutes.filter((_, index) => index !== aiRouteIndex % baseRoutes.length)]; routeList.innerHTML = todayRoutes.map((route, index) => `<button class="route-card" aria-label="${route.name} 길 안내 보기"><span class="route-art">${route.icon}</span><span class="route-info"><span class="route-top"><b>${route.name}</b><span class="route-crowd">${index === 0 ? "AI 예시 추천" : tasteNames[activeTaste]}</span></span><p>${route.detail}</p><span class="route-meta"><span>⌁ ${route.meta}</span></span></span><span class="arrow">→</span></button>`).join(""); document.querySelectorAll(".route-card").forEach((card, index) => card.addEventListener("click", () => openNavigation(todayRoutes[index]))); document.getElementById("routeHeading").textContent = `${tasteNames[activeTaste]} 오늘의 추천`; }
-function updateNavigation() { const stops = routeStops[activeRoute.name]; const step = stops[currentStep + 1]; document.getElementById("modalTitle").textContent = activeRoute.name; document.getElementById("navPlace").textContent = step; document.getElementById("navDescription").innerHTML = `${currentStep === 1 ? "가상의 로컬 탐방 지점도 함께 둘러보세요." : "해안길을 따라 다음 탐방 지점으로 이동하세요."} <span class="demo-label inline">예시 안내</span>`; document.getElementById("gpsNote").textContent = "위치 권한을 허용하면 현재 위치를 출발지로 사용합니다. 위치는 저장하지 않습니다."; document.querySelectorAll(".map-stop").forEach((stop, index) => { stop.classList.toggle("current", index === currentStep + 1); stop.querySelector("small").textContent = stops[index]; }); document.getElementById("completeRoute").textContent = currentStep === stops.length - 2 ? "루트 완주하기" : "다음 지점으로 안내받기"; }
-function openGoogleMaps(origin = "") { const destination = mapDestinations[activeRoute.name][currentStep]; const params = new URLSearchParams({ api: "1", destination, travelmode: "walking" }); if (origin) params.set("origin", origin); window.open(`https://www.google.com/maps/dir/?${params.toString()}`, "_blank", "noopener"); }
-function requestGpsNavigation() { const note = document.getElementById("gpsNote"); if (!navigator.geolocation) { note.textContent = "이 기기에서는 GPS를 사용할 수 없어, 목적지만 표시한 Google 지도를 엽니다."; openGoogleMaps(); return; } note.textContent = "현재 위치를 확인하는 중이에요…"; navigator.geolocation.getCurrentPosition(position => { const { latitude, longitude } = position.coords; note.textContent = "현재 위치를 출발지로 설정했어요. Google 지도가 새 창에서 열립니다."; openGoogleMaps(`${latitude},${longitude}`); }, () => { note.textContent = "위치 권한이 허용되지 않아, 목적지만 표시한 Google 지도를 엽니다."; openGoogleMaps(); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }); }
+const routeList = document.getElementById("routeList");
+const modal = document.getElementById("modalBackdrop");
+const quiz = document.getElementById("quizBackdrop");
+let activeTaste = "food";
+let currentStep = 0;
+let quizIndex = 0;
+let aiRouteIndex = 0;
+let activeRoute = null;
+let routeMap = null;
+let routeLayer = null;
+let userLocationMarker = null;
+let scores = { food: 0, view: 0, quiet: 0, photo: 0 };
+
+function dailyRoutes(taste) {
+  const all = routeSets[taste];
+  const day = Math.floor(Date.now() / 86400000);
+  return [all[day % all.length], all[(day + 1) % all.length]];
+}
+
+function renderRoutes() {
+  const baseRoutes = dailyRoutes(activeTaste);
+  const first = aiRouteIndex % baseRoutes.length;
+  const todayRoutes = [baseRoutes[first], ...baseRoutes.filter((_, index) => index !== first)];
+  routeList.innerHTML = todayRoutes.map((route, index) => `
+    <button class="route-card" aria-label="${route.name} 길 안내 보기">
+      <span class="route-art">${route.icon}</span>
+      <span class="route-info"><span class="route-top"><b>${route.name}</b><span class="route-crowd">${index === 0 ? "AI 예시 추천" : tasteNames[activeTaste]}</span></span><p>${route.detail}</p><span class="route-meta"><span>⌁ ${route.meta}</span></span></span>
+      <span class="arrow">→</span>
+    </button>`).join("");
+  document.querySelectorAll(".route-card").forEach((card, index) => card.addEventListener("click", () => openNavigation(todayRoutes[index])));
+  document.getElementById("routeHeading").textContent = `${tasteNames[activeTaste]} 오늘의 추천`;
+}
+
+function routeCoordinates(name) {
+  const [lat, lng] = routeMapCenters[name];
+  return [[lat - .004, lng - .006], [lat - .001, lng + .002], [lat + .002, lng + .005], [lat + .005, lng + .008]];
+}
+
+function ensureRouteMap() {
+  if (!window.L) {
+    document.getElementById("gpsNote").textContent = "공개 지도 정보를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.";
+    return false;
+  }
+  if (!routeMap) {
+    routeMap = L.map("routeMap", { zoomControl: false });
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(routeMap);
+    L.control.zoom({ position: "bottomright" }).addTo(routeMap);
+  }
+  return true;
+}
+
+function renderRouteMap() {
+  if (!ensureRouteMap()) return;
+  const coordinates = routeCoordinates(activeRoute.name);
+  const stops = routeStops[activeRoute.name];
+  if (routeLayer) routeLayer.remove();
+  routeLayer = L.layerGroup().addTo(routeMap);
+  L.polyline(coordinates, { color: "#087fa2", weight: 5, dashArray: "8 7" }).addTo(routeLayer);
+  coordinates.forEach((coordinate, index) => {
+    const icon = L.divIcon({ className: "", html: `<span class="route-marker ${index === currentStep + 1 ? "active" : ""}">${index + 1}</span>`, iconSize: [28, 28], iconAnchor: [14, 14] });
+    L.marker(coordinate, { icon }).bindPopup(`<b>${stops[index]}</b><br><small>프로토타입 예시 탐방 지점</small>`).addTo(routeLayer);
+  });
+  routeMap.fitBounds(coordinates, { padding: [25, 25] });
+  setTimeout(() => routeMap.invalidateSize(), 50);
+}
+
+function showMyLocation() {
+  const note = document.getElementById("gpsNote");
+  if (!navigator.geolocation) { note.textContent = "이 기기에서는 GPS 위치 기능을 사용할 수 없어요."; return; }
+  note.textContent = "현재 위치를 확인하는 중이에요…";
+  navigator.geolocation.getCurrentPosition(position => {
+    if (!ensureRouteMap()) return;
+    const { latitude, longitude } = position.coords;
+    if (userLocationMarker) userLocationMarker.remove();
+    const icon = L.divIcon({ className: "", html: '<span class="user-marker"></span>', iconSize: [18, 18], iconAnchor: [9, 9] });
+    userLocationMarker = L.marker([latitude, longitude], { icon }).bindPopup("현재 위치").addTo(routeMap);
+    routeMap.setView([latitude, longitude], 15);
+    note.textContent = "현재 위치를 지도에 표시했어요. 위치는 저장하지 않습니다.";
+  }, () => { note.textContent = "위치 권한이 허용되지 않았어요. 기기 설정에서 위치 권한을 허용하면 사용할 수 있습니다."; }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+}
+
+function updateNavigation() {
+  const stops = routeStops[activeRoute.name];
+  document.getElementById("modalTitle").textContent = activeRoute.name;
+  document.getElementById("navPlace").textContent = stops[currentStep + 1];
+  document.getElementById("navDescription").innerHTML = `${currentStep === 1 ? "가상의 로컬 탐방 지점도 함께 둘러보세요." : "해안길을 따라 다음 탐방 지점으로 이동하세요."} <span class="demo-label inline">예시 안내</span>`;
+  document.getElementById("gpsNote").textContent = "위치 권한을 허용하면 현재 위치를 지도에 표시합니다. 위치는 저장하지 않습니다.";
+  document.getElementById("completeRoute").textContent = currentStep === stops.length - 2 ? "루트 완주하기" : "다음 지점으로 안내받기";
+  renderRouteMap();
+}
+
 function openNavigation(route = dailyRoutes(activeTaste)[0]) { activeRoute = route; currentStep = 0; modal.hidden = false; document.body.style.overflow = "hidden"; updateNavigation(); }
 function closeModal() { modal.hidden = true; document.body.style.overflow = ""; }
 function showNotice(message) { const notice = document.createElement("div"); notice.className = "notice"; notice.textContent = message; document.body.append(notice); setTimeout(() => notice.remove(), 2400); }
@@ -65,6 +142,22 @@ function goHome() { window.scrollTo({ top: 0, behavior: "smooth" }); }
 function showQuiz() { quiz.hidden = false; document.getElementById("quizIntro").hidden = false; document.getElementById("quizQuestions").hidden = true; document.getElementById("quizResult").hidden = true; }
 function beginQuiz() { quizIndex = 0; scores = { food: 0, view: 0, quiet: 0, photo: 0 }; document.getElementById("quizIntro").hidden = true; document.getElementById("quizQuestions").hidden = false; document.getElementById("quizResult").hidden = true; renderQuestion(); }
 function renderQuestion() { const [title, answers] = questions[quizIndex]; document.getElementById("quizProgress").textContent = `${quizIndex + 1} / ${questions.length}`; document.getElementById("quizQuestion").textContent = title; document.getElementById("quizOptions").innerHTML = answers.map((answer, index) => `<button data-answer="${index}">${answer}</button>`).join(""); document.querySelectorAll("#quizOptions button").forEach(button => button.addEventListener("click", () => chooseAnswer(Number(button.dataset.answer)))); }
-function chooseAnswer(answer) { const pairs = [["food", "view"], ["quiet", "photo"], ["quiet", "view"], ["food", "view"], ["quiet", "photo"], ["food", "photo"], ["quiet", "view"], ["food", "view"], ["food", "photo"], ["quiet", "photo"]]; scores[pairs[quizIndex][answer]] += 1; quizIndex += 1; if (quizIndex < questions.length) renderQuestion(); else { activeTaste = Object.keys(scores).reduce((best, key) => scores[key] > scores[best] ? key : best, "food"); document.querySelectorAll(".taste-tab").forEach(tab => tab.classList.toggle("active", tab.dataset.taste === activeTaste)); renderRoutes(); document.getElementById("quizQuestions").hidden = true; document.getElementById("resultTaste").textContent = tasteNames[activeTaste]; document.getElementById("resultDescription").textContent = tasteDescriptions[activeTaste]; document.getElementById("quizResult").hidden = false; } }
+function chooseAnswer(answer) { const pairs = [["food", "view"], ["quiet", "photo"], ["quiet", "view"], ["food", "view"], ["quiet", "photo"], ["food", "photo"], ["quiet", "view"], ["food", "view"], ["food", "photo"], ["quiet", "photo"]]; scores[pairs[quizIndex][answer]] += 1; quizIndex += 1; if (quizIndex < questions.length) { renderQuestion(); return; } activeTaste = Object.keys(scores).reduce((best, key) => scores[key] > scores[best] ? key : best, "food"); document.querySelectorAll(".taste-tab").forEach(tab => tab.classList.toggle("active", tab.dataset.taste === activeTaste)); renderRoutes(); document.getElementById("quizQuestions").hidden = true; document.getElementById("resultTaste").textContent = tasteNames[activeTaste]; document.getElementById("resultDescription").textContent = tasteDescriptions[activeTaste]; document.getElementById("quizResult").hidden = false; }
 
-document.getElementById("startButton").addEventListener("click", showQuiz); document.getElementById("beginQuiz").addEventListener("click", beginQuiz); document.getElementById("restartQuiz").addEventListener("click", beginQuiz); document.getElementById("viewResultRoutes").addEventListener("click", () => { quiz.hidden = true; document.getElementById("routes").scrollIntoView({ behavior: "smooth" }); }); ["skipQuiz", "stopQuiz"].forEach(id => document.getElementById(id).addEventListener("click", () => { quiz.hidden = true; document.getElementById("routes").scrollIntoView({ behavior: "smooth" }); })); document.getElementById("homeButton").addEventListener("click", goHome); document.getElementById("navHome").addEventListener("click", goHome); document.getElementById("navRoute").addEventListener("click", () => document.getElementById("routes").scrollIntoView({ behavior: "smooth" })); document.getElementById("aiRecommendButton").addEventListener("click", () => { const button = document.getElementById("aiRecommendButton"); button.disabled = true; button.querySelector("b").textContent = "AI가 새 루트를 고르는 중…"; setTimeout(() => { aiRouteIndex += 1; renderRoutes(); button.disabled = false; button.querySelector("b").textContent = "AI에게 새 루트 추천받기"; showNotice(`새 ${tasteNames[activeTaste]} 예시 루트를 추천했어요!`); }, 550); }); document.getElementById("routeMakerButton").addEventListener("click", () => openNavigation()); document.getElementById("openGoogleMaps").addEventListener("click", requestGpsNavigation); document.getElementById("closeModal").addEventListener("click", closeModal); modal.addEventListener("click", event => { if (event.target === modal) closeModal(); }); document.getElementById("completeRoute").addEventListener("click", () => { const stopCount = routeStops[activeRoute.name].length; if (currentStep < stopCount - 2) { currentStep += 1; updateNavigation(); } else { showNotice(`${activeRoute.name} 루트를 완주했어요!`); closeModal(); } }); document.querySelectorAll(".map-stop").forEach((stop, index) => stop.addEventListener("click", () => { if (activeRoute && index > 0 && index < routeStops[activeRoute.name].length) { currentStep = index - 1; updateNavigation(); } })); document.querySelectorAll(".taste-tab").forEach(tab => tab.addEventListener("click", () => { activeTaste = tab.dataset.taste; aiRouteIndex = 0; document.querySelectorAll(".taste-tab").forEach(item => item.classList.toggle("active", item === tab)); renderRoutes(); })); document.getElementById("storyButton").addEventListener("click", () => showNotice("AR 도슨트는 다음 단계에서 연결할 기능이에요.")); renderRoutes();
+document.getElementById("startButton").addEventListener("click", showQuiz);
+document.getElementById("beginQuiz").addEventListener("click", beginQuiz);
+document.getElementById("restartQuiz").addEventListener("click", beginQuiz);
+document.getElementById("viewResultRoutes").addEventListener("click", () => { quiz.hidden = true; document.getElementById("routes").scrollIntoView({ behavior: "smooth" }); });
+["skipQuiz", "stopQuiz"].forEach(id => document.getElementById(id).addEventListener("click", () => { quiz.hidden = true; document.getElementById("routes").scrollIntoView({ behavior: "smooth" }); }));
+document.getElementById("homeButton").addEventListener("click", goHome);
+document.getElementById("navHome").addEventListener("click", goHome);
+document.getElementById("navRoute").addEventListener("click", () => document.getElementById("routes").scrollIntoView({ behavior: "smooth" }));
+document.getElementById("aiRecommendButton").addEventListener("click", () => { const button = document.getElementById("aiRecommendButton"); button.disabled = true; button.querySelector("b").textContent = "AI가 새 루트를 고르는 중…"; setTimeout(() => { aiRouteIndex += 1; renderRoutes(); button.disabled = false; button.querySelector("b").textContent = "AI에게 새 루트 추천받기"; showNotice(`새 ${tasteNames[activeTaste]} 예시 루트를 추천했어요!`); }, 550); });
+document.getElementById("routeMakerButton").addEventListener("click", () => openNavigation());
+document.getElementById("showMyLocation").addEventListener("click", showMyLocation);
+document.getElementById("closeModal").addEventListener("click", closeModal);
+modal.addEventListener("click", event => { if (event.target === modal) closeModal(); });
+document.getElementById("completeRoute").addEventListener("click", () => { const lastStep = routeStops[activeRoute.name].length - 2; if (currentStep < lastStep) { currentStep += 1; updateNavigation(); } else { showNotice(`${activeRoute.name} 루트를 완주했어요!`); closeModal(); } });
+document.querySelectorAll(".taste-tab").forEach(tab => tab.addEventListener("click", () => { activeTaste = tab.dataset.taste; aiRouteIndex = 0; document.querySelectorAll(".taste-tab").forEach(item => item.classList.toggle("active", item === tab)); renderRoutes(); }));
+document.getElementById("storyButton").addEventListener("click", () => showNotice("AR 도슨트는 다음 단계에서 연결할 기능이에요."));
+renderRoutes();
