@@ -43,6 +43,7 @@ const routeStops = {
   "영도 골목과 바다 프레임": ["영도 골목입구", "골목전망 포인트", "프레임카페 · 가상 카페", "흰여울 바다"]
 };
 const routeMapCenters = { "센텀–마린시티–광안리": [35.163, 129.137], "송도 바다식탁 산책": [35.076, 129.019], "마린시티 노을 뷰 루트": [35.157, 129.151], "영도 절벽 바다길": [35.078, 129.044], "그린레일웨이 + 동백섬 루프": [35.160, 129.162], "북항 물결 산책로": [35.116, 129.045], "광안대교 빛 포인트 루트": [35.153, 129.119], "영도 골목과 바다 프레임": [35.078, 129.044] };
+const aiWorkerUrl = "https://busan-seawall-ai.minjaes599.workers.dev/";
 
 const routeList = document.getElementById("routeList");
 const modal = document.getElementById("modalBackdrop");
@@ -51,6 +52,7 @@ let activeTaste = "food";
 let currentStep = 0;
 let quizIndex = 0;
 let aiRouteIndex = 0;
+let aiRecommendedRouteName = null;
 let activeRoute = null;
 let routeMap = null;
 let routeLayer = null;
@@ -65,7 +67,8 @@ function dailyRoutes(taste) {
 
 function renderRoutes() {
   const baseRoutes = dailyRoutes(activeTaste);
-  const first = aiRouteIndex % baseRoutes.length;
+  const selectedIndex = baseRoutes.findIndex(route => route.name === aiRecommendedRouteName);
+  const first = selectedIndex >= 0 ? selectedIndex : aiRouteIndex % baseRoutes.length;
   const todayRoutes = [baseRoutes[first], ...baseRoutes.filter((_, index) => index !== first)];
   routeList.innerHTML = todayRoutes.map((route, index) => `
     <button class="route-card" aria-label="${route.name} 길 안내 보기">
@@ -152,12 +155,33 @@ document.getElementById("viewResultRoutes").addEventListener("click", () => { qu
 document.getElementById("homeButton").addEventListener("click", goHome);
 document.getElementById("navHome").addEventListener("click", goHome);
 document.getElementById("navRoute").addEventListener("click", () => document.getElementById("routes").scrollIntoView({ behavior: "smooth" }));
-document.getElementById("aiRecommendButton").addEventListener("click", () => { const button = document.getElementById("aiRecommendButton"); button.disabled = true; button.querySelector("b").textContent = "AI가 새 루트를 고르는 중…"; setTimeout(() => { aiRouteIndex += 1; renderRoutes(); button.disabled = false; button.querySelector("b").textContent = "AI에게 새 루트 추천받기"; showNotice(`새 ${tasteNames[activeTaste]} 예시 루트를 추천했어요!`); }, 550); });
+document.getElementById("aiRecommendButton").addEventListener("click", async () => {
+  const button = document.getElementById("aiRecommendButton");
+  const result = document.getElementById("aiResult");
+  button.disabled = true;
+  button.querySelector("b").textContent = "AI가 내 취향을 분석하는 중…";
+  try {
+    const response = await fetch(aiWorkerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taste: activeTaste }) });
+    const data = await response.json();
+    if (!response.ok || !data.routeName) throw new Error(data.error || "AI 추천을 받지 못했습니다.");
+    aiRecommendedRouteName = data.routeName;
+    result.textContent = `AI 추천 이유: ${data.reason}`;
+    result.hidden = false;
+    renderRoutes();
+    showNotice("AI가 새 루트를 추천했어요!");
+  } catch (error) {
+    result.textContent = `AI 추천 연결 오류: ${error.message}`;
+    result.hidden = false;
+  } finally {
+    button.disabled = false;
+    button.querySelector("b").textContent = "AI에게 새 루트 추천받기";
+  }
+});
 document.getElementById("routeMakerButton").addEventListener("click", () => openNavigation());
 document.getElementById("showMyLocation").addEventListener("click", showMyLocation);
 document.getElementById("closeModal").addEventListener("click", closeModal);
 modal.addEventListener("click", event => { if (event.target === modal) closeModal(); });
 document.getElementById("completeRoute").addEventListener("click", () => { const lastStep = routeStops[activeRoute.name].length - 2; if (currentStep < lastStep) { currentStep += 1; updateNavigation(); } else { showNotice(`${activeRoute.name} 루트를 완주했어요!`); closeModal(); } });
-document.querySelectorAll(".taste-tab").forEach(tab => tab.addEventListener("click", () => { activeTaste = tab.dataset.taste; aiRouteIndex = 0; document.querySelectorAll(".taste-tab").forEach(item => item.classList.toggle("active", item === tab)); renderRoutes(); }));
+document.querySelectorAll(".taste-tab").forEach(tab => tab.addEventListener("click", () => { activeTaste = tab.dataset.taste; aiRouteIndex = 0; aiRecommendedRouteName = null; document.getElementById("aiResult").hidden = true; document.querySelectorAll(".taste-tab").forEach(item => item.classList.toggle("active", item === tab)); renderRoutes(); }));
 document.getElementById("storyButton").addEventListener("click", () => showNotice("AR 도슨트는 다음 단계에서 연결할 기능이에요."));
 renderRoutes();
